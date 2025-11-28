@@ -118,7 +118,7 @@ class ReorderableItemViewState extends State<ReorderableItemView>
 
       if (_offsetAnimation == null) {
         _offsetAnimation = AnimationController(vsync: _listState)
-          ..duration = const Duration(milliseconds: 250)
+          ..duration = const Duration(milliseconds: 200) // 250ms → 200msに変更
           ..addListener(rebuild)
           ..addStatusListener((status) {
             if (status == AnimationStatus.completed) {

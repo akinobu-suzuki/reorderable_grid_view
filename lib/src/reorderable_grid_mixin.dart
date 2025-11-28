@@ -311,7 +311,12 @@ mixin ReorderableGridStateMixin<T extends ReorderableGridWidgetMixin>
 
   _onDragEnd(DragInfo item) {
     widget.onReorder(_dragIndex!, _dropIndex!);
-    _dragReset();
+    // アニメーション完了を待ってからリセット
+    Future.delayed(const Duration(milliseconds: 250), () {
+      if (mounted) {
+        _dragReset();
+      }
+    });
   }
 
   // ok, drag is end.
