@@ -118,7 +118,7 @@ class ReorderableItemViewState extends State<ReorderableItemView>
 
       if (_offsetAnimation == null) {
         _offsetAnimation = AnimationController(vsync: _listState)
-          ..duration = const Duration(milliseconds: 200) // 250ms → 200msに変更
+          ..duration = const Duration(milliseconds: 250)
           ..addListener(rebuild)
           ..addStatusListener((status) {
             if (status == AnimationStatus.completed) {
@@ -168,13 +168,16 @@ class ReorderableItemViewState extends State<ReorderableItemView>
   void resetGap() {
     setState(() {
       if (_offsetAnimation != null) {
-        _offsetAnimation!.dispose();
-        _offsetAnimation = null;
+        // アニメーションで元の位置に戻す
+        _startOffset = _currentOffset();
+        _targetOffset = Offset.zero;
+        _placeholderOffset = Offset.zero;
+        _offsetAnimation!.forward(from: 0);
+      } else {
+        _startOffset = Offset.zero;
+        _targetOffset = Offset.zero;
+        _placeholderOffset = Offset.zero;
       }
-
-      _startOffset = Offset.zero;
-      _targetOffset = Offset.zero;
-      _placeholderOffset = Offset.zero;
     });
   }
 
