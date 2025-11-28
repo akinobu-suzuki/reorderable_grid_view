@@ -309,9 +309,30 @@ mixin ReorderableGridStateMixin<T extends ReorderableGridWidgetMixin>
     setState(() {});
   }
 
-  _onDragEnd(DragInfo item) {
-    widget.onReorder(_dragIndex!, _dropIndex!);
+  _onDragEnd(DragInfo item) async {
+    final dragIndex = _dragIndex;
+    final dropIndex = _dropIndex;
+    if (dragIndex == null || dropIndex == null) {
+      _dragReset();
+      return;
+    }
+
+    final targetGlobal = _globalPositionForIndex(dropIndex);
+    if (targetGlobal != null) {
+      await item.animateToTarget(targetGlobal);
+    }
+
+    widget.onReorder(dragIndex, dropIndex);
     _dragReset();
+  }
+
+  Offset? _globalPositionForIndex(int index) {
+    final renderObject = context.findRenderObject();
+    if (renderObject is! RenderBox) {
+      return null;
+    }
+    final localOffset = getPosByIndex(index);
+    return renderObject.localToGlobal(localOffset);
   }
 
   // ok, drag is end.

@@ -276,6 +276,48 @@ class DragInfo extends Drag {
   void _endOrCancel() {
     hasEnd = true;
   }
+
+  Future<void> animateToTarget(Offset targetGlobalPosition,
+      {Duration duration = const Duration(milliseconds: 250)}) async {
+    final currentTopLeft = dragPosition - dragOffset;
+    final distance = (currentTopLeft - targetGlobalPosition).distance;
+    if (distance < 0.5 || _overlayEntry == null) {
+      dragPosition = targetGlobalPosition + dragOffset;
+      _overlayEntry?.markNeedsBuild();
+      return;
+    }
+
+    _proxyAnimationController?.dispose();
+    final completer = Completer<void>();
+    _proxyAnimationController = AnimationController(
+      vsync: tickerProvider,
+      duration: duration,
+    );
+
+    final animation = CurvedAnimation(
+      parent: _proxyAnimationController!,
+      curve: Curves.easeInOut,
+    );
+
+    animation.addListener(() {
+      final topLeft =
+          Offset.lerp(currentTopLeft, targetGlobalPosition, animation.value)!;
+      dragPosition = topLeft + dragOffset;
+      _overlayEntry?.markNeedsBuild();
+    });
+
+    animation.addStatusListener((status) {
+      if (status == AnimationStatus.completed ||
+          status == AnimationStatus.dismissed) {
+        completer.complete();
+      }
+    });
+
+    _proxyAnimationController!.forward(from: 0);
+    await completer.future;
+    _proxyAnimationController?.dispose();
+    _proxyAnimationController = null;
+  }
 }
 
 class ScreenshotWidget extends StatefulWidget {
