@@ -169,7 +169,7 @@ class ReorderableItemViewState extends State<ReorderableItemView>
     setState(() {
       if (_offsetAnimation != null) {
         // アニメーションで元の位置に戻す
-        _startOffset = _currentOffset();
+        _startOffset = offset;
         _targetOffset = Offset.zero;
         _placeholderOffset = Offset.zero;
         _offsetAnimation!.forward(from: 0);
