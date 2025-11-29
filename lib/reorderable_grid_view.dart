@@ -72,6 +72,11 @@ typedef DragEnableConfig = bool Function(int index);
 typedef OnDragUpdate = void Function(
     int dragIndex, Offset position, Offset delta);
 
+/// Called when an item is removed with animation.
+/// 
+/// [removedIndex] is the index of the item that was removed.
+typedef OnRemoveComplete = void Function(int removedIndex);
+
 /// Usage:
 /// ```
 /// ReorderableGridView(

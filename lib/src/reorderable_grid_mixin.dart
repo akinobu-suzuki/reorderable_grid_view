@@ -404,4 +404,37 @@ mixin ReorderableGridStateMixin<T extends ReorderableGridWidgetMixin>
       }
     }
   }
+
+  /// Animates the removal of an item at [removedIndex].
+  /// Items after the removed index will slide to fill the gap.
+  /// 
+  /// Usage:
+  /// ```dart
+  /// await gridState.removeItem(index, const Duration(milliseconds: 300));
+  /// setState(() {
+  ///   _items.removeAt(index);
+  /// });
+  /// ```
+  Future<void> removeItem(int removedIndex, Duration duration) async {
+    if (!mounted) return;
+
+    // 削除対象のインデックスを記録
+    _dropIndex = removedIndex;
+
+    // 削除対象より後ろのアイテムを更新して、スライドアニメーションを開始
+    for (var item in __items.values) {
+      if (item.index > removedIndex) {
+        item.updateForGap(removedIndex);
+      }
+    }
+
+    // アニメーション完了を待つ
+    await Future.delayed(duration);
+
+    // リセット
+    _dropIndex = null;
+    for (var item in __items.values) {
+      item.resetGap();
+    }
+  }
 }
