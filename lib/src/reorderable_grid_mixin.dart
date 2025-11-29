@@ -48,7 +48,13 @@ mixin ReorderableGridStateMixin<T extends ReorderableGridWidgetMixin>
     on State<T>, TickerProviderStateMixin<T> {
   DragEnableConfig get dragEnableConfig => widget.dragEnableConfig ?? (index) => true;
   MultiDragGestureRecognizer? _recognizer;
-  GlobalKey<OverlayState> overlayKey = GlobalKey<OverlayState>();
+  
+  // GlobalKeyの重複を防ぐため、遅延初期化（各インスタンスで一意）
+  GlobalKey<OverlayState>? _overlayKey;
+  GlobalKey<OverlayState> get overlayKey {
+    _overlayKey ??= GlobalKey<OverlayState>(debugLabel: 'overlay_${identityHashCode(this)}');
+    return _overlayKey!;
+  }
   // late Overlay overlay = Overlay(key: overlayKey);
 
   Duration get dragStartDelay => widget.dragStartDelay ?? kLongPressTimeout;
