@@ -405,36 +405,42 @@ mixin ReorderableGridStateMixin<T extends ReorderableGridWidgetMixin>
     }
   }
 
-  /// Animates the removal of an item at [removedIndex].
-  /// Items after the removed index will slide to fill the gap.
-  /// 
-  /// Usage:
-  /// ```dart
-  /// await gridState.removeItem(index, const Duration(milliseconds: 300));
-  /// setState(() {
-  ///   _items.removeAt(index);
-  /// });
-  /// ```
+  /// Animates a gap-closure when removing an item at [removedIndex].
+  /// Items after the removed index will slide to fill the empty slot.
   Future<void> removeItem(int removedIndex, Duration duration) async {
     if (!mounted) return;
 
-    // 削除対象のインデックスを記録
-    _dropIndex = removedIndex;
+    final futures = <Future<void>>[];
+    final indices = __items.keys.toList()..sort();
 
-    // 削除対象より後ろのアイテムを更新して、スライドアニメーションを開始
-    for (var item in __items.values) {
-      if (item.index > removedIndex) {
-        item.updateForGap(removedIndex);
+    for (final index in indices) {
+      if (index <= removedIndex) {
+        continue;
+      }
+
+      final previousIndex = _findPreviousExistingIndex(index);
+      if (previousIndex == null) {
+        continue;
+      }
+
+      final currentPos = getPosByIndex(index, safe: false);
+      final targetPos = getPosByIndex(previousIndex, safe: false);
+      final delta = targetPos - currentPos;
+      final item = __items[index];
+      if (item != null) {
+        futures.add(item.animateShift(delta, duration));
       }
     }
 
-    // アニメーション完了を待つ
-    await Future.delayed(duration);
+    await Future.wait(futures);
+  }
 
-    // リセット
-    _dropIndex = null;
-    for (var item in __items.values) {
-      item.resetGap();
+  int? _findPreviousExistingIndex(int start) {
+    for (var i = start - 1; i >= 0; i--) {
+      if (__items.containsKey(i)) {
+        return i;
+      }
     }
+    return null;
   }
 }

@@ -1,4 +1,6 @@
 
+import 'dart:async';
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:reorderable_grid_view/src/reorderable_grid_mixin.dart';
@@ -198,6 +200,38 @@ class ReorderableItemViewState extends State<ReorderableItemView>
         _placeholderOffset = Offset.zero;
       }
     });
+  }
+
+  Future<void> animateShift(Offset delta, Duration duration) {
+    if (!mounted || delta == Offset.zero) {
+      return Future.value();
+    }
+
+    final completer = Completer<void>();
+
+    _offsetAnimation?.dispose();
+    _offsetAnimation = AnimationController(
+      vsync: _listState,
+      duration: duration,
+    )
+      ..addListener(rebuild)
+      ..addStatusListener((status) {
+        if (status == AnimationStatus.completed) {
+          _startOffset = delta;
+          _targetOffset = delta;
+          _offsetAnimation?.dispose();
+          _offsetAnimation = null;
+          if (!completer.isCompleted) {
+            completer.complete();
+          }
+        }
+      });
+
+    _startOffset = Offset.zero;
+    _targetOffset = delta;
+    _offsetAnimation!.forward(from: 0.0);
+
+    return completer.future;
   }
 
   // Ok, for now we use multiDragRecognizer
