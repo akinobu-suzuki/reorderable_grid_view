@@ -77,8 +77,6 @@ class ReorderableItemViewState extends State<ReorderableItemView>
   /// This is the index in [AllChild]
   int? get indexInAll => widget.indexInAll;
 
-  final Key childKey = GlobalKey();
-
   set dragging(bool dragging) {
     if (mounted) {
       setState(() {
