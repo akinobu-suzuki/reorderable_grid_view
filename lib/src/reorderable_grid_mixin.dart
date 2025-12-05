@@ -476,8 +476,8 @@ mixin ReorderableGridStateMixin<T extends ReorderableGridWidgetMixin>
     final futures = <Future<void>>[];
     final indices = __items.keys.toList()..sort();
     
-    debug('📍 insertItems: insertedIndex=$insertedIndex, count=$count');
-    debug('📍 レンダリングされているアイテムのインデックス: $indices');
+    debugPrint('📍 insertItems: insertedIndex=$insertedIndex, count=$count');
+    debugPrint('📍 レンダリングされているアイテムのインデックス: $indices');
 
     for (final index in indices) {
       if (index < insertedIndex) {
@@ -492,12 +492,12 @@ mixin ReorderableGridStateMixin<T extends ReorderableGridWidgetMixin>
         final renderBox = item.context.findRenderObject() as RenderBox?;
         if (renderBox == null || !renderBox.hasSize) {
           // レンダリングされていないアイテムはスキップ
-          debug('⚠️ アイテム[$index] レンダリングなし（スキップ）');
+          debugPrint('⚠️ アイテム[$index] レンダリングなし（スキップ）');
           continue;
         }
       } catch (e) {
         // エラーが発生したらスキップ
-        debug('⚠️ アイテム[$index] エラー（スキップ）: $e');
+        debugPrint('⚠️ アイテム[$index] エラー（スキップ）: $e');
         continue;
       }
 
@@ -506,7 +506,7 @@ mixin ReorderableGridStateMixin<T extends ReorderableGridWidgetMixin>
       final targetPos = getPosByIndex(index + count, safe: false);
       final delta = targetPos - currentPos;
       
-      debug('🔄 アイテム[$index] シフト: $currentPos -> $targetPos (delta=$delta)');
+      debugPrint('🔄 アイテム[$index] シフト: $currentPos -> $targetPos (delta=$delta)');
       
       futures.add(item.animateShift(delta, duration));
     }
