@@ -137,11 +137,22 @@ mixin ReorderableGridStateMixin<T extends ReorderableGridWidgetMixin>
 
       // childがnullでも、layoutから直接位置を計算できる
       final fixedIndex = child?.indexInAll ?? child?.index ?? index;
-      final SliverGridGeometry gridGeometry =
-          layout.getGeometryForChildIndex(fixedIndex);
-      final rst =
-          Offset(gridGeometry.crossAxisOffset, gridGeometry.scrollOffset);
-      return rst;
+      
+      try {
+        final SliverGridGeometry gridGeometry =
+            layout.getGeometryForChildIndex(fixedIndex);
+        final rst =
+            Offset(gridGeometry.crossAxisOffset, gridGeometry.scrollOffset);
+        
+        if (child == null) {
+          debugPrint('🔍 getPosByIndex($index) child=null, fixedIndex=$fixedIndex, result=$rst');
+        }
+        
+        return rst;
+      } catch (e) {
+        debugPrint('❌ getPosByIndex($index) エラー: $e');
+        return Offset.zero;
+      }
     }
 
     var renderObject = child?.context.findRenderObject();
