@@ -481,14 +481,27 @@ mixin ReorderableGridStateMixin<T extends ReorderableGridWidgetMixin>
         continue;
       }
 
+      final item = __items[index];
+      if (item == null) continue;
+      
+      // アイテムがレンダリングされているか確認
+      try {
+        final renderBox = item.context.findRenderObject() as RenderBox?;
+        if (renderBox == null || !renderBox.hasSize) {
+          // レンダリングされていないアイテムはスキップ
+          continue;
+        }
+      } catch (e) {
+        // エラーが発生したらスキップ
+        continue;
+      }
+
       // 現在位置と「count個後ろ」の位置との差分を計算してシフトさせる
       final currentPos = getPosByIndex(index, safe: false);
       final targetPos = getPosByIndex(index + count, safe: false);
       final delta = targetPos - currentPos;
-      final item = __items[index];
-      if (item != null) {
-        futures.add(item.animateShift(delta, duration));
-      }
+      
+      futures.add(item.animateShift(delta, duration));
     }
 
     await Future.wait(futures);
