@@ -145,12 +145,10 @@ mixin ReorderableGridStateMixin<T extends ReorderableGridWidgetMixin>
             Offset(gridGeometry.crossAxisOffset, gridGeometry.scrollOffset);
         
         if (child == null) {
-          debugPrint('🔍 getPosByIndex($index) child=null, fixedIndex=$fixedIndex, result=$rst');
         }
         
         return rst;
       } catch (e) {
-        debugPrint('❌ getPosByIndex($index) エラー: $e');
         return Offset.zero;
       }
     }
@@ -484,9 +482,6 @@ mixin ReorderableGridStateMixin<T extends ReorderableGridWidgetMixin>
     final futures = <Future<void>>[];
     final indices = __items.keys.toList()..sort();
 
-    debugPrint('📍 insertItems: insertedIndex=$insertedIndex, count=$count');
-    debugPrint('📍 レンダリングされているアイテムのインデックス: $indices');
-    debugPrint('📍 レンダリングされているアイテム数: ${indices.length}');
 
     // 古いリストの最大インデックス（新しいアイテムが追加される前）
     final oldMaxIndex = indices.isNotEmpty ? indices.last : -1;
@@ -518,7 +513,6 @@ mixin ReorderableGridStateMixin<T extends ReorderableGridWidgetMixin>
       }
     }
     
-    debugPrint('📊 crossAxisCount: $crossAxisCount, cellSize: ${cellWidthWithSpacing}x$cellHeightWithSpacing');
     
     for (final index in indices) {
       if (index < insertedIndex) {
@@ -532,11 +526,9 @@ mixin ReorderableGridStateMixin<T extends ReorderableGridWidgetMixin>
       try {
         final renderBox = item.context.findRenderObject() as RenderBox?;
         if (renderBox == null || !renderBox.hasSize) {
-          debugPrint('⚠️ アイテム[$index] レンダリングなし（スキップ）');
           continue;
         }
       } catch (e) {
-        debugPrint('❌ RenderBox取得エラー for item[$index]: $e');
         continue;
       }
 
@@ -549,14 +541,12 @@ mixin ReorderableGridStateMixin<T extends ReorderableGridWidgetMixin>
       
       if (targetIndex > oldMaxIndex) {
         // 範囲外なので手動計算
-        debugPrint('🧮 アイテム[$index] → [$targetIndex] 手動計算（oldMax=$oldMaxIndex）');
         
         // まずgetPosByIndexを試す
         targetPos = getPosByIndex(targetIndex, safe: false);
         
         if (targetPos == Offset.zero && targetIndex != 0) {
           // (0,0)が返ってきた＝無効なので手動計算
-          debugPrint('   🧮 完全手動計算にフォールバック');
           
           if (crossAxisCount > 0 && cellWidthWithSpacing > 0 && cellHeightWithSpacing > 0) {
             final targetRow = targetIndex ~/ crossAxisCount;
@@ -566,13 +556,10 @@ mixin ReorderableGridStateMixin<T extends ReorderableGridWidgetMixin>
             final targetY = basePos.dy + (targetRow * cellHeightWithSpacing);
             
             targetPos = Offset(targetX, targetY);
-            debugPrint('   🧮 手動計算: row=$targetRow, col=$targetCol, pos=$targetPos');
           } else {
-            debugPrint('   ❌ グリッド情報不足、スキップ');
             continue;
           }
         } else {
-          debugPrint('   ✅ getPosByIndex成功: $targetPos');
         }
       } else {
         targetPos = getPosByIndex(targetIndex, safe: false);
@@ -580,12 +567,10 @@ mixin ReorderableGridStateMixin<T extends ReorderableGridWidgetMixin>
       
       final delta = targetPos - currentPos;
       
-      debugPrint('🔄 アイテム[$index] シフト: $currentPos -> $targetPos (delta=$delta)');
       
       futures.add(item.animateShift(delta, duration));
     }
 
-    debugPrint('📍 実際にアニメーションするアイテム数: ${futures.length}');
 
     await Future.wait(futures);
     
