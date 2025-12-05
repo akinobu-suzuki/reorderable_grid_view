@@ -483,11 +483,42 @@ mixin ReorderableGridStateMixin<T extends ReorderableGridWidgetMixin>
 
     final futures = <Future<void>>[];
     final indices = __items.keys.toList()..sort();
-    
+
     debugPrint('📍 insertItems: insertedIndex=$insertedIndex, count=$count');
     debugPrint('📍 レンダリングされているアイテムのインデックス: $indices');
     debugPrint('📍 レンダリングされているアイテム数: ${indices.length}');
 
+    // グリッドレイアウト情報を取得
+    var thisRenderObject = context.findRenderObject();
+    if (thisRenderObject is! RenderSliverGrid) {
+      debugPrint('❌ RenderSliverGridが見つかりません');
+      return;
+    }
+    
+    final renderObject = thisRenderObject;
+    final SliverConstraints constraints = renderObject.constraints;
+    final SliverGridLayout layout = renderObject.gridDelegate.getLayout(constraints);
+    
+    // 横の個数を計算（最初の2つのアイテムの位置から）
+    int crossAxisCount = 1;
+    if (indices.length >= 2) {
+      final pos0 = getPosByIndex(indices[0], safe: false);
+      final pos1 = getPosByIndex(indices[1], safe: false);
+      if (pos0.dy == pos1.dy) {
+        // 同じ行にある場合、横の個数を数える
+        for (int i = 0; i < indices.length; i++) {
+          final pos = getPosByIndex(indices[i], safe: false);
+          if (pos.dy == pos0.dy) {
+            crossAxisCount++;
+          } else {
+            break;
+          }
+        }
+      }
+    }
+    
+    debugPrint('📊 crossAxisCount: $crossAxisCount');
+    
     // 古いリストの最大インデックス（新しいアイテムが追加される前）
     final oldMaxIndex = indices.isNotEmpty ? indices.last : -1;
     
@@ -503,35 +534,54 @@ mixin ReorderableGridStateMixin<T extends ReorderableGridWidgetMixin>
       try {
         final renderBox = item.context.findRenderObject() as RenderBox?;
         if (renderBox == null || !renderBox.hasSize) {
-          // レンダリングされていないアイテムはスキップ
           debugPrint('⚠️ アイテム[$index] レンダリングなし（スキップ）');
           continue;
         }
       } catch (e) {
-        // エラーが発生したらスキップ
-        debugPrint('⚠️ アイテム[$index] エラー（スキップ）: $e');
+        debugPrint('❌ RenderBox取得エラー for item[$index]: $e');
         continue;
       }
 
-      // 現在位置と「count個後ろ」の位置との差分を計算してシフトさせる
+      // 現在位置
       final currentPos = getPosByIndex(index, safe: false);
       
-      // ターゲットインデックスが古いリストの範囲を超える場合は手動計算
+      // ターゲットインデックス
       final targetIndex = index + count;
       Offset targetPos;
       
       if (targetIndex > oldMaxIndex) {
-        // 範囲外なので、getPosByIndexが(0,0)を返す可能性がある
-        // この場合は「最後のレンダリングされたアイテムの位置 + オフセット」で計算
-        debugPrint('⚠️ アイテム[$index] ターゲット[$targetIndex]は範囲外（oldMax=$oldMaxIndex）');
+        // 範囲外なので手動計算
+        debugPrint('🧮 アイテム[$index] → [$targetIndex] 手動計算（oldMax=$oldMaxIndex）');
         
-        // getPosByIndexを試してみる（うまく動作するかもしれない）
-        targetPos = getPosByIndex(targetIndex, safe: false);
-        
-        // もし(0,0)が返ってきたら、それは無効なので、アニメーションをスキップ
-        if (targetPos == Offset.zero && targetIndex != 0) {
-          debugPrint('⚠️ アイテム[$index] ターゲット位置が(0,0)なのでスキップ');
-          continue;
+        // layout.getGeometryForChildIndexを使って計算
+        try {
+          final SliverGridGeometry gridGeometry = layout.getGeometryForChildIndex(targetIndex);
+          targetPos = Offset(gridGeometry.crossAxisOffset, gridGeometry.scrollOffset);
+          debugPrint('   ✅ layout計算成功: $targetPos');
+        } catch (e) {
+          debugPrint('   ❌ layout計算失敗: $e, 手動計算にフォールバック');
+          
+          // 完全に手動計算（最後の有効なアイテムから計算）
+          final lastValidPos = getPosByIndex(oldMaxIndex, safe: false);
+          final lastValidRow = oldMaxIndex ~/ crossAxisCount;
+          final lastValidCol = oldMaxIndex % crossAxisCount;
+          
+          final targetRow = targetIndex ~/ crossAxisCount;
+          final targetCol = targetIndex % crossAxisCount;
+          
+          // セルサイズとスペーシングを計算
+          final pos0 = getPosByIndex(0, safe: false);
+          final pos1 = crossAxisCount > 1 ? getPosByIndex(1, safe: false) : Offset.zero;
+          final cellWidthWithSpacing = pos1.dx - pos0.dx;
+          
+          final posNextRow = crossAxisCount <= oldMaxIndex ? getPosByIndex(crossAxisCount, safe: false) : Offset.zero;
+          final cellHeightWithSpacing = posNextRow.dy - pos0.dy;
+          
+          final targetX = pos0.dx + (targetCol * cellWidthWithSpacing);
+          final targetY = pos0.dy + (targetRow * cellHeightWithSpacing);
+          
+          targetPos = Offset(targetX, targetY);
+          debugPrint('   🧮 手動計算: row=$targetRow, col=$targetCol, pos=$targetPos');
         }
       } else {
         targetPos = getPosByIndex(targetIndex, safe: false);
