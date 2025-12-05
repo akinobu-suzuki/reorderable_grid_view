@@ -478,6 +478,7 @@ mixin ReorderableGridStateMixin<T extends ReorderableGridWidgetMixin>
     
     debugPrint('📍 insertItems: insertedIndex=$insertedIndex, count=$count');
     debugPrint('📍 レンダリングされているアイテムのインデックス: $indices');
+    debugPrint('📍 レンダリングされているアイテム数: ${indices.length}');
 
     for (final index in indices) {
       if (index < insertedIndex) {
@@ -495,6 +496,15 @@ mixin ReorderableGridStateMixin<T extends ReorderableGridWidgetMixin>
           debugPrint('⚠️ アイテム[$index] レンダリングなし（スキップ）');
           continue;
         }
+        
+        // 画面内にあるかチェック
+        final position = renderBox.localToGlobal(Offset.zero);
+        final size = renderBox.size;
+        if (position.dy + size.height < 0 || position.dy > 2000) {
+          // 画面外のアイテムはスキップ（上下2000pxの範囲外）
+          debugPrint('⚠️ アイテム[$index] 画面外（スキップ）: y=${position.dy}');
+          continue;
+        }
       } catch (e) {
         // エラーが発生したらスキップ
         debugPrint('⚠️ アイテム[$index] エラー（スキップ）: $e');
@@ -504,19 +514,14 @@ mixin ReorderableGridStateMixin<T extends ReorderableGridWidgetMixin>
       // 現在位置と「count個後ろ」の位置との差分を計算してシフトさせる
       final currentPos = getPosByIndex(index, safe: false);
       final targetPos = getPosByIndex(index + count, safe: false);
-      
-      // targetPosが(0,0)の場合はスキップ（範囲外のインデックス）
-      if (targetPos == Offset.zero && index + count >= insertedIndex + count) {
-        debugPrint('⚠️ アイテム[$index] 目標位置が範囲外（スキップ）: targetIndex=${index + count}');
-        continue;
-      }
-      
       final delta = targetPos - currentPos;
       
       debugPrint('🔄 アイテム[$index] シフト: $currentPos -> $targetPos (delta=$delta)');
       
       futures.add(item.animateShift(delta, duration));
     }
+
+    debugPrint('📍 実際にアニメーションするアイテム数: ${futures.length}');
 
     await Future.wait(futures);
     
