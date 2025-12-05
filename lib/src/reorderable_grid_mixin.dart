@@ -488,6 +488,9 @@ mixin ReorderableGridStateMixin<T extends ReorderableGridWidgetMixin>
     debugPrint('📍 レンダリングされているアイテムのインデックス: $indices');
     debugPrint('📍 レンダリングされているアイテム数: ${indices.length}');
 
+    // 古いリストの最大インデックス（新しいアイテムが追加される前）
+    final oldMaxIndex = indices.isNotEmpty ? indices.last : -1;
+    
     for (final index in indices) {
       if (index < insertedIndex) {
         continue;
@@ -512,7 +515,28 @@ mixin ReorderableGridStateMixin<T extends ReorderableGridWidgetMixin>
 
       // 現在位置と「count個後ろ」の位置との差分を計算してシフトさせる
       final currentPos = getPosByIndex(index, safe: false);
-      final targetPos = getPosByIndex(index + count, safe: false);
+      
+      // ターゲットインデックスが古いリストの範囲を超える場合は手動計算
+      final targetIndex = index + count;
+      Offset targetPos;
+      
+      if (targetIndex > oldMaxIndex) {
+        // 範囲外なので、getPosByIndexが(0,0)を返す可能性がある
+        // この場合は「最後のレンダリングされたアイテムの位置 + オフセット」で計算
+        debugPrint('⚠️ アイテム[$index] ターゲット[$targetIndex]は範囲外（oldMax=$oldMaxIndex）');
+        
+        // getPosByIndexを試してみる（うまく動作するかもしれない）
+        targetPos = getPosByIndex(targetIndex, safe: false);
+        
+        // もし(0,0)が返ってきたら、それは無効なので、アニメーションをスキップ
+        if (targetPos == Offset.zero && targetIndex != 0) {
+          debugPrint('⚠️ アイテム[$index] ターゲット位置が(0,0)なのでスキップ');
+          continue;
+        }
+      } else {
+        targetPos = getPosByIndex(targetIndex, safe: false);
+      }
+      
       final delta = targetPos - currentPos;
       
       debugPrint('🔄 アイテム[$index] シフト: $currentPos -> $targetPos (delta=$delta)');
