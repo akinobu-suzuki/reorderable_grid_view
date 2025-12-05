@@ -121,7 +121,7 @@ mixin ReorderableGridStateMixin<T extends ReorderableGridWidgetMixin>
     var child = __items[index];
 
     if (child == null) {
-      debug("why child is null for index: $index, and __item: $__items");
+      debug("child is null for index: $index, will calculate from layout");
     }
 
     // how to do?
@@ -135,11 +135,8 @@ mixin ReorderableGridStateMixin<T extends ReorderableGridWidgetMixin>
       final SliverGridLayout layout =
           renderObject.gridDelegate.getLayout(constraints);
 
-      // SliverGridGeometry(scrollOffset: 0.0, crossAxisOffset: 0.0, mainAxisExtent: 217.46031746031747, crossAxisExtent: 130.47619047619048), index: 0
-      // SliverGridGeometry(scrollOffset: 0.0, crossAxisOffset: 140.47619047619048, mainAxisExtent: 217.46031746031747, crossAxisExtent: 130.47619047619048), index: 1
-      // SliverGridGeometry(scrollOffset: 227.46031746031747, crossAxisOffset: 0.0, mainAxisExtent: 217.46031746031747, crossAxisExtent: 130.47619047619048), index: 3
-      // index is not the right index!!!
-      final fixedIndex = child!.indexInAll?? child.index;
+      // childがnullでも、layoutから直接位置を計算できる
+      final fixedIndex = child?.indexInAll ?? child?.index ?? index;
       final SliverGridGeometry gridGeometry =
           layout.getGeometryForChildIndex(fixedIndex);
       final rst =
@@ -504,43 +501,7 @@ mixin ReorderableGridStateMixin<T extends ReorderableGridWidgetMixin>
 
       // 現在位置と「count個後ろ」の位置との差分を計算してシフトさせる
       final currentPos = getPosByIndex(index, safe: false);
-      var targetPos = getPosByIndex(index + count, safe: false);
-      
-      // もしtargetPosが(0,0)なら、手動で計算
-      if (targetPos == Offset.zero && index + count >= insertedIndex + count) {
-        // 既知の位置から目標位置を推定
-        // 方法: index - count の位置を取得し、それとindexの距離を使う
-        // 例: index=210, count=4 の場合
-        //     index[206]からindex[210]への移動距離 = 
-        //     index[210]からindex[214]への移動距離
-        final referenceIndex = index - count;
-        if (referenceIndex >= 0) {
-          final referencePos = getPosByIndex(referenceIndex, safe: false);
-          if (referencePos != Offset.zero) {
-            // referenceIndex[206]からindex[210]への距離
-            final spacing = currentPos - referencePos;
-            // 同じ距離を加算
-            targetPos = currentPos + spacing;
-            
-            debugPrint('🧮 アイテム[$index] 目標位置を手動計算: [$referenceIndex]$referencePos -> [$index]$currentPos の距離($spacing)を使用 = $targetPos');
-          } else {
-            // フォールバック: 1個前との距離をcount倍
-            final prevPos = getPosByIndex(index - 1, safe: false);
-            final itemSpacing = currentPos - prevPos;
-            targetPos = currentPos + (itemSpacing * count.toDouble());
-            
-            debugPrint('🧮 アイテム[$index] 目標位置を手動計算（fallback）: $currentPos + ($itemSpacing × $count) = $targetPos');
-          }
-        } else {
-          // フォールバック: 1個前との距離をcount倍
-          final prevPos = getPosByIndex(index - 1, safe: false);
-          final itemSpacing = currentPos - prevPos;
-          targetPos = currentPos + (itemSpacing * count.toDouble());
-          
-          debugPrint('🧮 アイテム[$index] 目標位置を手動計算（fallback2）: $currentPos + ($itemSpacing × $count) = $targetPos');
-        }
-      }
-      
+      final targetPos = getPosByIndex(index + count, safe: false);
       final delta = targetPos - currentPos;
       
       debugPrint('🔄 アイテム[$index] シフト: $currentPos -> $targetPos (delta=$delta)');
