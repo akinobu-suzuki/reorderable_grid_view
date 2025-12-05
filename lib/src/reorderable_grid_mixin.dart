@@ -496,15 +496,6 @@ mixin ReorderableGridStateMixin<T extends ReorderableGridWidgetMixin>
           debugPrint('⚠️ アイテム[$index] レンダリングなし（スキップ）');
           continue;
         }
-        
-        // 画面内にあるかチェック
-        final position = renderBox.localToGlobal(Offset.zero);
-        final size = renderBox.size;
-        if (position.dy + size.height < 0 || position.dy > 2000) {
-          // 画面外のアイテムはスキップ（上下2000pxの範囲外）
-          debugPrint('⚠️ アイテム[$index] 画面外（スキップ）: y=${position.dy}');
-          continue;
-        }
       } catch (e) {
         // エラーが発生したらスキップ
         debugPrint('⚠️ アイテム[$index] エラー（スキップ）: $e');
@@ -513,7 +504,23 @@ mixin ReorderableGridStateMixin<T extends ReorderableGridWidgetMixin>
 
       // 現在位置と「count個後ろ」の位置との差分を計算してシフトさせる
       final currentPos = getPosByIndex(index, safe: false);
-      final targetPos = getPosByIndex(index + count, safe: false);
+      var targetPos = getPosByIndex(index + count, safe: false);
+      
+      // もしtargetPosが(0,0)なら、手動で計算
+      if (targetPos == Offset.zero && index + count >= insertedIndex + count) {
+        final targetIndex = index + count;
+        final currentIndex = index;
+        
+        // 現在のアイテムから次のアイテムまでの距離を計算
+        final nextPos = getPosByIndex(index + 1, safe: false);
+        final itemSpacing = nextPos - currentPos;
+        
+        // count個分の距離を計算
+        targetPos = currentPos + (itemSpacing * count.toDouble());
+        
+        debugPrint('🧮 アイテム[$index] 目標位置を手動計算: $currentPos + ($itemSpacing × $count) = $targetPos');
+      }
+      
       final delta = targetPos - currentPos;
       
       debugPrint('🔄 アイテム[$index] シフト: $currentPos -> $targetPos (delta=$delta)');
