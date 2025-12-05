@@ -508,12 +508,9 @@ mixin ReorderableGridStateMixin<T extends ReorderableGridWidgetMixin>
       
       // もしtargetPosが(0,0)なら、手動で計算
       if (targetPos == Offset.zero && index + count >= insertedIndex + count) {
-        final targetIndex = index + count;
-        final currentIndex = index;
-        
-        // 現在のアイテムから次のアイテムまでの距離を計算
-        final nextPos = getPosByIndex(index + 1, safe: false);
-        final itemSpacing = nextPos - currentPos;
+        // 前のアイテムとの距離を計算（前のアイテムは確実に存在する）
+        final prevPos = getPosByIndex(index - 1, safe: false);
+        final itemSpacing = currentPos - prevPos;
         
         // count個分の距離を計算
         targetPos = currentPos + (itemSpacing * count.toDouble());
