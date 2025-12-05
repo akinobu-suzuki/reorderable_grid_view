@@ -441,8 +441,48 @@ mixin ReorderableGridStateMixin<T extends ReorderableGridWidgetMixin>
     await Future.wait(futures);
   }
 
+  /// Animates items shifting to make space when inserting at [insertedIndex].
+  /// Items at or after the inserted index will slide back to make room.
+  Future<void> insertItem(int insertedIndex, Duration duration) async {
+    if (!mounted) return;
+
+    final futures = <Future<void>>[];
+    final indices = __items.keys.toList()..sort();
+
+    for (final index in indices) {
+      if (index < insertedIndex) {
+        continue;
+      }
+
+      final nextIndex = _findNextExistingIndex(index);
+      if (nextIndex == null) {
+        continue;
+      }
+
+      final currentPos = getPosByIndex(index, safe: false);
+      final targetPos = getPosByIndex(nextIndex, safe: false);
+      final delta = targetPos - currentPos;
+      final item = __items[index];
+      if (item != null) {
+        futures.add(item.animateShift(delta, duration));
+      }
+    }
+
+    await Future.wait(futures);
+  }
+
   int? _findPreviousExistingIndex(int start) {
     for (var i = start - 1; i >= 0; i--) {
+      if (__items.containsKey(i)) {
+        return i;
+      }
+    }
+    return null;
+  }
+
+  int? _findNextExistingIndex(int start) {
+    final indices = __items.keys.toList()..sort();
+    for (var i = start + 1; i <= (indices.isNotEmpty ? indices.last : start); i++) {
       if (__items.containsKey(i)) {
         return i;
       }
