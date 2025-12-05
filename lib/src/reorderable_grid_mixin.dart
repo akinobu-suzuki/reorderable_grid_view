@@ -492,6 +492,11 @@ mixin ReorderableGridStateMixin<T extends ReorderableGridWidgetMixin>
     }
 
     await Future.wait(futures);
+    
+    // アニメーション完了後、すべてのアイテムのオフセットをリセット
+    for (final item in __items.values) {
+      item.resetGap();
+    }
   }
 
   int? _findPreviousExistingIndex(int start) {
