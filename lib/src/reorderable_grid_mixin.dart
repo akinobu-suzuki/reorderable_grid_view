@@ -508,14 +508,37 @@ mixin ReorderableGridStateMixin<T extends ReorderableGridWidgetMixin>
       
       // もしtargetPosが(0,0)なら、手動で計算
       if (targetPos == Offset.zero && index + count >= insertedIndex + count) {
-        // 前のアイテムとの距離を計算（前のアイテムは確実に存在する）
-        final prevPos = getPosByIndex(index - 1, safe: false);
-        final itemSpacing = currentPos - prevPos;
-        
-        // count個分の距離を計算
-        targetPos = currentPos + (itemSpacing * count.toDouble());
-        
-        debugPrint('🧮 アイテム[$index] 目標位置を手動計算: $currentPos + ($itemSpacing × $count) = $targetPos');
+        // 既知の位置から目標位置を推定
+        // 方法: index - count の位置を取得し、それとindexの距離を使う
+        // 例: index=210, count=4 の場合
+        //     index[206]からindex[210]への移動距離 = 
+        //     index[210]からindex[214]への移動距離
+        final referenceIndex = index - count;
+        if (referenceIndex >= 0) {
+          final referencePos = getPosByIndex(referenceIndex, safe: false);
+          if (referencePos != Offset.zero) {
+            // referenceIndex[206]からindex[210]への距離
+            final spacing = currentPos - referencePos;
+            // 同じ距離を加算
+            targetPos = currentPos + spacing;
+            
+            debugPrint('🧮 アイテム[$index] 目標位置を手動計算: [$referenceIndex]$referencePos -> [$index]$currentPos の距離($spacing)を使用 = $targetPos');
+          } else {
+            // フォールバック: 1個前との距離をcount倍
+            final prevPos = getPosByIndex(index - 1, safe: false);
+            final itemSpacing = currentPos - prevPos;
+            targetPos = currentPos + (itemSpacing * count.toDouble());
+            
+            debugPrint('🧮 アイテム[$index] 目標位置を手動計算（fallback）: $currentPos + ($itemSpacing × $count) = $targetPos');
+          }
+        } else {
+          // フォールバック: 1個前との距離をcount倍
+          final prevPos = getPosByIndex(index - 1, safe: false);
+          final itemSpacing = currentPos - prevPos;
+          targetPos = currentPos + (itemSpacing * count.toDouble());
+          
+          debugPrint('🧮 アイテム[$index] 目標位置を手動計算（fallback2）: $currentPos + ($itemSpacing × $count) = $targetPos');
+        }
       }
       
       final delta = targetPos - currentPos;
